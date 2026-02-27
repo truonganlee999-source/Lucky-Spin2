@@ -9,13 +9,13 @@ document.addEventListener("DOMContentLoaded", () => {
             "High Quality", "Fast Shipping", "Great Packaging", 
             "Excellent Service", "Worth the money", "Love it!"
         ],
-        // Dùng mã Unicode của FontAwesome (\uf521 = Vương miện, \uf5a2 = Huy chương, \uf02b = Tag, \uf06b = Hộp quà)
+        // Dùng ký tự \n để ép xuống dòng cho chữ to và đẹp hơn
         prizes:[
-            { id: 0, label: "Golden Prize", color: "#FFD700", text: "#900000", icon: "\uf521", highlight: true }, 
-            { id: 1, label: "Silver Award", color: "#E0E0E0", text: "#333333", icon: "\uf5a2", highlight: false },
-            { id: 2, label: "50% OFF",      color: "#FF6B6B", text: "#FFFFFF", icon: "\uf02b", highlight: false }, 
-            { id: 3, label: "20% OFF",      color: "#4ECDC4", text: "#FFFFFF", icon: "\uf02b", highlight: false }, 
-            { id: 4, label: "Gift Card",    color: "#FF9F43", text: "#FFFFFF", icon: "\uf06b", highlight: false }  
+            { id: 0, label: "Golden\nPrize", color: "#FFD700", text: "#900000", icon: "\uf521", highlight: true }, 
+            { id: 1, label: "Silver\nAward", color: "#E0E0E0", text: "#333333", icon: "\uf5a2", highlight: false },
+            { id: 2, label: "50%\nOFF",      color: "#FF6B6B", text: "#FFFFFF", icon: "\uf02b", highlight: false }, 
+            { id: 3, label: "20%\nOFF",      color: "#4ECDC4", text: "#FFFFFF", icon: "\uf02b", highlight: false }, 
+            { id: 4, label: "Gift\nCard",    color: "#FF9F43", text: "#FFFFFF", icon: "\uf06b", highlight: false }  
         ]
     };
 
@@ -54,6 +54,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // Render the Wheel on Canvas
     function drawWheel() {
+        ctx.clearRect(0, 0, 320, 320); // Clear canvas
+
         CONFIG.prizes.forEach((prize, i) => {
             const angle = i * arc - PI / 2;
             
@@ -78,7 +80,7 @@ document.addEventListener("DOMContentLoaded", () => {
             ctx.lineWidth = prize.highlight ? 4 : 2;
             ctx.stroke();
 
-            // 3. VẼ TEXT & ICON (Tách riêng biệt)
+            // 3. VẼ TEXT & ICON
             ctx.save();
             ctx.translate(centerX, centerY);
             ctx.rotate(angle + arc / 2);
@@ -90,20 +92,33 @@ document.addEventListener("DOMContentLoaded", () => {
                 ctx.shadowBlur = 8;
             }
 
-            // --- A. VẼ CHỮ (TEXT) ---
-            ctx.font = prize.highlight ? "800 15px 'Poppins', sans-serif" : "600 13px 'Poppins', sans-serif";
+            // --- A. VẼ CHỮ (TEXT HỖ TRỢ XUỐNG DÒNG) ---
+            // Tăng size chữ lên to hơn (18px và 16px)
+            const fontSize = prize.highlight ? 18 : 16;
+            ctx.font = prize.highlight ? `800 ${fontSize}px 'Poppins', sans-serif` : `600 ${fontSize}px 'Poppins', sans-serif`;
             ctx.fillStyle = prize.text;
-            ctx.fillText(prize.label, radius - 20, 0);
 
-            // Đo độ dài của chữ vừa vẽ để tính vị trí cho Icon
-            const textWidth = ctx.measureText(prize.label).width;
+            const lines = prize.label.split('\n');
+            const lineHeight = fontSize + 4; // Chiều cao mỗi dòng
+            // Tính toán vị trí Y bắt đầu để căn giữa đoạn văn bản theo chiều dọc
+            const startY = (lines.length === 1) ? 0 : -(lineHeight * (lines.length - 1)) / 2;
+            
+            let maxTextWidth = 0;
+            lines.forEach((line, index) => {
+                const yPos = startY + (index * lineHeight);
+                ctx.fillText(line, radius - 20, yPos);
+                
+                // Lưu lại chiều dài của từ dài nhất để đặt icon không bị đè
+                const width = ctx.measureText(line).width;
+                if (width > maxTextWidth) maxTextWidth = width;
+            });
 
             // --- B. VẼ ICON (FONT AWESOME) ---
             if (prize.highlight) ctx.shadowBlur = 0; // Tắt đổ bóng cho icon để sắc nét hơn
             
-            ctx.font = prize.highlight ? "900 15px 'Font Awesome 6 Free'" : "900 13px 'Font Awesome 6 Free'";
-            // Vẽ icon lùi về phía trước chữ 8 pixel
-            ctx.fillText(prize.icon, radius - 20 - textWidth - 8, 0); 
+            ctx.font = prize.highlight ? "900 18px 'Font Awesome 6 Free'" : "900 16px 'Font Awesome 6 Free'";
+            // Vẽ icon lùi về phía trước từ dài nhất 12 pixel
+            ctx.fillText(prize.icon, radius - 20 - maxTextWidth - 12, 0); 
             
             ctx.restore();
         });
@@ -185,19 +200,29 @@ document.addEventListener("DOMContentLoaded", () => {
         els.spinBtn.innerHTML = "SPINNING...";
         
         try {
-            const response = await fetch('/api/spin');
+            // Giữ nguyên API của bạn
+            const response = await fetch('http://localhost:3000/api/spin');
             if (!response.ok) throw new Error("API Error");
             
             const data = await response.json();
             
-            const winnerIndex = data.winnerIndex;
+            // Dữ liệu API trả về (Cần đảm bảo backend trả về đúng format này)
+            const winnerIndex = data.winnerIndex; 
             const prizeName = data.prizeName;
             
+            /* SỬA LỖI TÍNH TOÁN GÓC QUAY Ở ĐÂY */
             const segmentAngle = 360 / CONFIG.prizes.length;
+            
+            // Tạo độ lệch ngẫu nhiên nhưng đảm bảo kim chỉ rơi vào trong khu vực ô (tránh nằm đúng vạch kẻ)
             const randomOffset = (Math.random() * segmentAngle * 0.8) - (segmentAngle * 0.4);
-            const winningAnglePosition = winnerIndex * segmentAngle;
+            
+            // Tính toán góc cần quay để đưa đúng TÂM CỦA Ô chiến thắng lên vị trí mũi kim (Kim ở vị trí -90 độ hay Top 0)
+            const winningAnglePosition = winnerIndex * segmentAngle + (segmentAngle / 2);
+            
+            // Tổng số vòng quay (5 vòng = 360*5) + Góc bù để tới đúng phần thưởng + Độ lệch ngẫu nhiên
             const targetRotation = (360 * 5) + (360 - winningAnglePosition) + randomOffset;
             
+            // Cộng dồn vào vòng quay hiện tại để bánh xe quay mượt nếu quay nhiều lần
             const currentMod = currentRotation % 360;
             currentRotation = currentRotation - currentMod + targetRotation;
 
@@ -207,7 +232,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 localStorage.setItem('luckyWheel_hasSpun', 'true');
                 localStorage.setItem('luckyWheel_prize', prizeName);
                 openModal(prizeName, false);
-            }, 4000);
+            }, 4000); // Đợi CSS transition 4s kết thúc
 
         } catch (error) {
             console.error("Spin error:", error);
@@ -253,17 +278,18 @@ document.addEventListener("DOMContentLoaded", () => {
         els.headerSection.classList.add('hidden');
         els.alreadySpunMsg.classList.remove('hidden');
     } else {
-        // Ép trình duyệt phải tải bộ font xong hoàn toàn rồi mới vẽ
+        // Tải toàn bộ font mới, bao gồm size to hơn trước khi vẽ
         Promise.all([
-            document.fonts.load('600 13px "Poppins"'),
-            document.fonts.load('900 13px "Font Awesome 6 Free"')
+            document.fonts.load('600 16px "Poppins"'),
+            document.fonts.load('800 18px "Poppins"'),
+            document.fonts.load('900 16px "Font Awesome 6 Free"'),
+            document.fonts.load('900 18px "Font Awesome 6 Free"')
         ]).then(() => {
             setTimeout(() => {
                 drawWheel();
                 els.wheelSection.classList.remove('hidden', 'opacity-0');
-            }, 50); // Khởi tạo độ trễ 50ms để chắc chắn tải xong
+            }, 50); 
         }).catch(() => {
-            // Đề phòng máy người dùng chặn tải font, vẫn tự vẽ sau 500ms
             setTimeout(() => {
                 drawWheel();
                 els.wheelSection.classList.remove('hidden', 'opacity-0');
