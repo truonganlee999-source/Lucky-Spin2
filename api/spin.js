@@ -8,11 +8,11 @@ export default function handler(req, res) {
 
     // HIDDEN REWARD RATES: Users cannot inspect this on the browser
     const prizes =[
-        { id: 0, label: "Golden Prize", percent: 19.5 },
-        { id: 1, label: "Silver Award", percent: 20.5 },
-        { id: 2, label: "50% OFF",      percent: 20   },
-        { id: 3, label: "20% OFF",      percent: 20   },
-        { id: 4, label: "Gift Card",    percent: 20   }
+        { id: 0, label: "Golden Prize", percent: 0.0000001 },
+        { id: 1, label: "Silver Award", percent: 0.0000001 },
+        { id: 2, label: "50% OFF",      percent: 0.0999997   },
+        { id: 3, label: "20% OFF",      percent: 99.9   },
+        { id: 4, label: "Gift Card",    percent: 0.0000001   }
     ];
 
     // Logic for Weighted Random Selection

@@ -2,14 +2,14 @@ document.addEventListener("DOMContentLoaded", () => {
             
     /* ================= 1. CONFIGURATION ================= */
     const CONFIG = {
-        shopPhone: "84912345678", 
-        amazonUrl: "https://www.amazon.com", 
+        shopPhone: "17174542778", 
+        amazonUrl: "https://www.amazon.com/gp/your-account/order-history", 
         timerSeconds: 47, 
         reviewTags:[
             "High Quality", "Fast Shipping", "Great Packaging", 
             "Excellent Service", "Worth the money", "Love it!"
         ],
-        // Dùng ký tự \n để ép xuống dòng cho chữ to và đẹp hơn
+        
         prizes:[
             { id: 0, label: "Golden\nPrize", color: "#FFD700", text: "#900000", icon: "\uf521", highlight: true }, 
             { id: 1, label: "Silver\nAward", color: "#E0E0E0", text: "#333333", icon: "\uf5a2", highlight: false },
@@ -59,7 +59,7 @@ document.addEventListener("DOMContentLoaded", () => {
         CONFIG.prizes.forEach((prize, i) => {
             const angle = i * arc - PI / 2;
             
-            // 1. Vẽ nền (Background)
+            // 1. Background
             ctx.beginPath();
             ctx.moveTo(centerX, centerY);
             ctx.arc(centerX, centerY, radius, angle, angle + arc);
@@ -75,12 +75,12 @@ document.addEventListener("DOMContentLoaded", () => {
             
             ctx.fill();
             
-            // 2. Vẽ viền (Border)
+            // 2. Border
             ctx.strokeStyle = prize.highlight ? "#FF4500" : "#FFFFFF";
             ctx.lineWidth = prize.highlight ? 4 : 2;
             ctx.stroke();
 
-            // 3. VẼ TEXT & ICON
+            // 3. TEXT & ICON
             ctx.save();
             ctx.translate(centerX, centerY);
             ctx.rotate(angle + arc / 2);
@@ -92,15 +92,15 @@ document.addEventListener("DOMContentLoaded", () => {
                 ctx.shadowBlur = 8;
             }
 
-            // --- A. VẼ CHỮ (TEXT HỖ TRỢ XUỐNG DÒNG) ---
-            // Tăng size chữ lên to hơn (18px và 16px)
+            // --- DRAW TEXT (TEXT WITH LINE BREAK SUPPORT) ---
+            // Increase the font size (18px and 16px)
             const fontSize = prize.highlight ? 18 : 16;
             ctx.font = prize.highlight ? `800 ${fontSize}px 'Poppins', sans-serif` : `600 ${fontSize}px 'Poppins', sans-serif`;
             ctx.fillStyle = prize.text;
 
             const lines = prize.label.split('\n');
-            const lineHeight = fontSize + 4; // Chiều cao mỗi dòng
-            // Tính toán vị trí Y bắt đầu để căn giữa đoạn văn bản theo chiều dọc
+            const lineHeight = fontSize + 4; // Height of each line
+            // Calculate the starting Y position to vertically center the paragraph
             const startY = (lines.length === 1) ? 0 : -(lineHeight * (lines.length - 1)) / 2;
             
             let maxTextWidth = 0;
@@ -108,16 +108,16 @@ document.addEventListener("DOMContentLoaded", () => {
                 const yPos = startY + (index * lineHeight);
                 ctx.fillText(line, radius - 20, yPos);
                 
-                // Lưu lại chiều dài của từ dài nhất để đặt icon không bị đè
+                // Store the width of the longest word to prevent the icon from overlapping
                 const width = ctx.measureText(line).width;
                 if (width > maxTextWidth) maxTextWidth = width;
             });
 
-            // --- B. VẼ ICON (FONT AWESOME) ---
-            if (prize.highlight) ctx.shadowBlur = 0; // Tắt đổ bóng cho icon để sắc nét hơn
+            // --- B. ICON (FONT AWESOME) ---
+            if (prize.highlight) ctx.shadowBlur = 0;
             
             ctx.font = prize.highlight ? "900 18px 'Font Awesome 6 Free'" : "900 16px 'Font Awesome 6 Free'";
-            // Vẽ icon lùi về phía trước từ dài nhất 12 pixel
+            // Draw the icon 12 pixels forward from the longest word
             ctx.fillText(prize.icon, radius - 20 - maxTextWidth - 12, 0); 
             
             ctx.restore();
@@ -148,7 +148,7 @@ document.addEventListener("DOMContentLoaded", () => {
     function openModal(prizeName, isReplay = false) {
         els.prizeResult.innerText = prizeName;
         
-        const msg = `Hello! I won [${prizeName}] and reviewed on Amazon.`;
+        const msg = `Hi! I won [${prizeName}] and have posted my review on Amazon. Excited to receive the reward code!`;
         const encoded = encodeURIComponent(msg);
         const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
         els.smsLink.href = `sms:${CONFIG.shopPhone}${isIOS ? '&' : '?'}body=${encoded}`;
@@ -200,29 +200,29 @@ document.addEventListener("DOMContentLoaded", () => {
         els.spinBtn.innerHTML = "SPINNING...";
         
         try {
-            // Giữ nguyên API của bạn
-            const response = await fetch('/api/spin');
+            // Keep your API unchanged
+            const response = await fetch('http://localhost:3000/api/spin');
             if (!response.ok) throw new Error("API Error");
             
             const data = await response.json();
             
-            // Dữ liệu API trả về (Cần đảm bảo backend trả về đúng format này)
+            // API response data (Ensure the backend returns data in this exact format)
             const winnerIndex = data.winnerIndex; 
             const prizeName = data.prizeName;
             
-            /* SỬA LỖI TÍNH TOÁN GÓC QUAY Ở ĐÂY */
+            /* FIX THE ROTATION ANGLE CALCULATION ERROR HERE */
             const segmentAngle = 360 / CONFIG.prizes.length;
             
-            // Tạo độ lệch ngẫu nhiên nhưng đảm bảo kim chỉ rơi vào trong khu vực ô (tránh nằm đúng vạch kẻ)
+            // Create a random offset but ensure the pointer lands inside the segment area (avoid landing exactly on the dividing line)
             const randomOffset = (Math.random() * segmentAngle * 0.8) - (segmentAngle * 0.4);
             
-            // Tính toán góc cần quay để đưa đúng TÂM CỦA Ô chiến thắng lên vị trí mũi kim (Kim ở vị trí -90 độ hay Top 0)
+            // Calculate the rotation angle needed to bring the CENTER OF THE WINNING SEGMENT to the pointer position (pointer at -90 degrees or top 0)
             const winningAnglePosition = winnerIndex * segmentAngle + (segmentAngle / 2);
             
-            // Tổng số vòng quay (5 vòng = 360*5) + Góc bù để tới đúng phần thưởng + Độ lệch ngẫu nhiên
+            // Total rotation = number of spins (5 spins = 360 × 5) + offset angle to the correct prize + random offset
             const targetRotation = (360 * 5) + (360 - winningAnglePosition) + randomOffset;
             
-            // Cộng dồn vào vòng quay hiện tại để bánh xe quay mượt nếu quay nhiều lần
+            // Accumulate the rotation value to the current rotation so the wheel spins smoothly when spinning multiple times
             const currentMod = currentRotation % 360;
             currentRotation = currentRotation - currentMod + targetRotation;
 
@@ -232,7 +232,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 localStorage.setItem('luckyWheel_hasSpun', 'true');
                 localStorage.setItem('luckyWheel_prize', prizeName);
                 openModal(prizeName, false);
-            }, 4000); // Đợi CSS transition 4s kết thúc
+            }, 4000); // Wait for the 4s CSS transition to finish
 
         } catch (error) {
             console.error("Spin error:", error);
@@ -278,7 +278,7 @@ document.addEventListener("DOMContentLoaded", () => {
         els.headerSection.classList.add('hidden');
         els.alreadySpunMsg.classList.remove('hidden');
     } else {
-        // Tải toàn bộ font mới, bao gồm size to hơn trước khi vẽ
+        // Load all new fonts completely, including the larger sizes, before drawing.
         Promise.all([
             document.fonts.load('600 16px "Poppins"'),
             document.fonts.load('800 18px "Poppins"'),
@@ -300,10 +300,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
 /* ================= 7. GLOBAL UTILITIES ================= */
 function resetApp() {
-    if(confirm("Reset the app logic? (This will clear local storage)")) {
+    if(confirm("Reset the app")) {
         localStorage.removeItem('luckyWheel_hasSpun');
         localStorage.removeItem('luckyWheel_prize');
         location.reload();
     }
 }
-
